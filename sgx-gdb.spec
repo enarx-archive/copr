@@ -11,6 +11,8 @@ Source0:        https://github.com/intel/linux-sgx/archive/sgx_%{version}.tar.gz
 Source1:        sgx-gdb
 
 ExclusiveArch:  x86_64
+
+BuildRequires:  gcc
 Requires:       python3
 
 %description
