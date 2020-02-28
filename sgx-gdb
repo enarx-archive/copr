@@ -1,0 +1,10 @@
+#!/bin/bash
+
+export PYTHONPATH=/usr/share/sgx-gdb
+export LD_PRELOAD=/usr/lib64/sgx-gdb/libsgx_ptrace.so
+exec gdb \
+	-iex "directory $PYTHONPATH" \
+	-iex "source $PYTHONPATH/gdb_sgx_plugin.py" \
+	-iex "set environment LD_PRELOAD" \
+	-iex "add-auto-load-safe-path /usr/lib64" \
+	"$@"
