@@ -1,1 +1,1 @@
-This repo contains the source for the [Enarx copr builds](https://copr.fedorainfracloud.org/coprs/npmccallum/enarx/) of [sgx-gdb](https://copr.fedorainfracloud.org/coprs/npmccallum/enarx/package/sgx-gdb/).
+This repo contains the source for the [Enarx copr builds](https://copr.fedorainfracloud.org/coprs/npmccallum/enarx/).
