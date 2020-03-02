@@ -1,0 +1,21 @@
+diff -ru linux-sgx-sgx_2.8-orig/sdk/debugger_interface/linux/gdb-sgx-plugin/gdb_sgx_plugin.py linux-sgx-sgx_2.8/sdk/debugger_interface/linux/gdb-sgx-plugin/gdb_sgx_plugin.py
+--- linux-sgx-sgx_2.8/sdk/debugger_interface/linux/gdb-sgx-plugin/gdb_sgx_plugin.py	2020-02-28 18:05:59.575711908 -0500
++++ linux-sgx-sgx_2.8/sdk/debugger_interface/linux/gdb-sgx-plugin/gdb_sgx_plugin.py	2020-02-28 18:06:52.940714456 -0500
+@@ -389,7 +389,7 @@
+         return None
+ 
+     stacksize = 0;
+-    while tcs_info_addr is not 0:
++    while tcs_info_addr != 0:
+         tcs_info_str = read_from_memory(tcs_info_addr, 3*SIZE)
+         if tcs_info_str == None:
+             return None
+@@ -428,7 +428,7 @@
+ 
+         #print ("last_ocall_frame = {0:x}".format(last_ocall_frame))
+ 
+-        while last_ocall_frame is not 0:
++        while last_ocall_frame != 0:
+             if SIZE == 4:
+                 of_fmt = '4I'
+             elif SIZE == 8:
