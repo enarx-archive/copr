@@ -9,6 +9,7 @@ License:        BSD
 URL:            https://github.com/intel/linux-sgx
 Source0:        https://github.com/intel/linux-sgx/archive/sgx_%{version}.tar.gz
 Source1:        sgx-gdb
+Patch0:         python-fixes.patch
 
 ExclusiveArch:  x86_64
 
@@ -20,7 +21,7 @@ Debugger for Intel SGX
 
 
 %prep
-%autosetup -n linux-sgx-sgx_%{version}
+%autosetup -p1 -n linux-sgx-sgx_%{version}
 sed -i 's|^#!/usr/bin/env python$|#!/usr/bin/python3|' sdk/debugger_interface/linux/gdb-sgx-plugin/*.py
 
 
