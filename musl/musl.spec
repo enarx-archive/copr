@@ -1,14 +1,11 @@
-# annobin bloats static libs significantly, disable it.
-#global alt_cflags %(echo "%{optflags}" | sed 's/[^ ]*annobin[^ ]* //; s/-O. /-Os /')
-%undefine _annotated_build
-%global alt_cflags %(echo "%{optflags}" | sed 's/-O. /-Os /')
-
-# Use as system libc
+# We are not using this as the system libc,
+# so this remains disabled by default.
 %bcond_with system_libc
 
 # Fedora uses multilib with /usr/lib64
 # This switch changes it to multiarch, with /usr/lib/[arch]-linux-musl
 # This switch only has effect if system_libc is disabled.
+# This switch is disabled by default.
 %bcond_with multiarch
 
 # Fedora uses glibc as the standard libc.
@@ -84,22 +81,28 @@ Version:	1.2.0
 Release:	1%{?dist}
 Summary:	Fully featured lightweight standard C library for Linux
 License:	MIT
-URL:		https://www.musl-libc.org
+URL:		https://musl.libc.org
 Source0:	%{url}/releases/%{name}-%{version}.tar.gz
-
-BuildRequires:	gcc, make
+Source1:	%{url}/releases/%{name}-%{version}.tar.gz.asc
+Source2:	%{url}/musl.pub
 
 # Fix Makefile to not use INSTALL variable so make_install macro works
-Patch0:         musl-1.1.18-Makefile-rename-INSTALL-var.patch
-Patch1:         musl-static-pie.patch
+Patch0:		musl-1.1.18-Makefile-rename-INSTALL-var.patch
+# Add patch to support PIE with static linking
+Patch1:		musl-1.2.0-Support-static-pie-with-musl-gcc-specs.patch
 
 # musl is only for Linux
 ExclusiveOS:	linux
 
-%if %{without system_libc}
-# Prevent RPM from reading non-standard paths for Provides
-%global __provides_exclude_from ^%{_libdir}/.*\\.so$
-%endif
+# s390 is not supported by musl-libc
+ExcludeArch:	s390
+
+BuildRequires:	gcc
+BuildRequires:	make
+
+# For GPG signature verification
+BuildRequires:	gnupg2
+
 
 %description
 musl is a new C standard library to power a new generation
@@ -111,6 +114,8 @@ conformance and safety.
 Summary:	Fully featured lightweight standard C library for Linux
 
 # This package provides musl dynamic libs too
+Obsoletes:	%{name}-libs < %{version}-%{release}
+Provides:	%{name}-libs = %{version}-%{release}
 Provides:	%{name}-libs%{?_isa} = %{version}-%{release}
 
 %description libc
@@ -127,10 +132,12 @@ programs and libraries against musl.
 Summary:	Development files for %{name}
 
 # This package also provides the headers for using musl
+Provides:	%{name}-headers = %{version}-%{release}
 Provides:	%{name}-headers%{?_isa} = %{version}-%{release}
-Requires:	%{name}-libc%{?_isa} = %{version}-%{release}
-%if 0%{?fedora} >= 21 || 0%{?rhel} >= 8
-Suggests:	%{name}-libc-static%{?_isa} = %{version}-%{release}
+
+Requires:	%{name}-libc = %{version}-%{release}
+%if ! (0%{?rhel} && 0%{?rhel} < 8)
+Recommends:	%{name}-libc-static = %{version}-%{release}
 %endif
 
 %description devel
@@ -144,6 +151,8 @@ musl with programs and libraries.
 
 %package libc-static
 Summary:	Static link library for %{name}
+Obsoletes:	%{name}-static < %{version}-%{release}
+Provides:	%{name}-static = %{version}-%{release}
 Provides:	%{name}-static%{?_isa} = %{version}-%{release}
 Requires:	%{name}-devel%{?_isa} = %{version}-%{release}
 
@@ -186,19 +195,27 @@ programs and libraries with musl easily.
 
 
 %prep
+# Verify *before* actually unpacking!
+%{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
+
+# Unpack sources and apply patches
 %autosetup -p1
 
 
 %build
-# use modified cflags defined earlier
-export CFLAGS="%{alt_cflags}"
-
+# Set linker flags to get correct soname...
+export LDFLAGS="%{?build_ldflags} -Wl,-soname,ld-musl-%{_musl_target_cpu}.so.1"
 %configure --enable-debug --enable-wrapper=all
 %make_build
 
 
 %install
 %make_install
+
+# Swap the files around for libc.so, making libc.so a symlink to the real file
+rm %{buildroot}/lib/ld-musl-%{_musl_target_cpu}.so.1
+mv %{buildroot}%{_libdir}/libc.so %{buildroot}/lib/ld-musl-%{_musl_target_cpu}.so.1
+ln -sr %{buildroot}/lib/ld-musl-%{_musl_target_cpu}.so.1 %{buildroot}%{_libdir}/libc.so
 
 # Write search path for dynamic linker
 mkdir -p %{buildroot}%{_sysconfdir}
@@ -211,7 +228,7 @@ EOF
 # Write symlink for syslib to /lib64 for compatibility with Fedora standards, where applicable
 mkdir -p %{buildroot}%{_syslibdir}
 %if "%{_lib}" == "lib64"
-ln -s /lib/ld-musl-%{_musl_target_cpu}.so.1 %{buildroot}%{_syslibdir}/ld-musl-%{_musl_target_cpu}.so.1
+ln -sr %{buildroot}/lib/ld-musl-%{_musl_target_cpu}.so.1 %{buildroot}%{_syslibdir}/ld-musl-%{_musl_target_cpu}.so.1
 %endif
 %endif
 
@@ -230,12 +247,12 @@ EOF
 %endif
 %endif
 %config(noreplace) %{_sysconfdir}/ld-musl-%{_musl_target_cpu}.path
-%{_libdir}/*.so
 
 %files devel
 %license COPYRIGHT
 %doc README WHATSNEW
 %{_includedir}/*
+%{_libdir}/*.so
 %{_libdir}/*.o
 %{_libdir}/*.a
 %exclude %{_libdir}/libc.a
@@ -257,6 +274,37 @@ EOF
 
 
 %changelog
-* Tue Apr 07 2020 Nathaniel McCallum <npmccallum@redhat.com> - 1.2.0-1
-- Update to 1.2.0
-- Added static-pie patch
+* Mon Apr  6 2020 Neal Gompa <ngompa13@gmail.com> - 1.2.0-1
+- Rebase to 1.2.0
+- Add patch to support PIE with static linking
+- Remove obsolete Group tags
+- Fix musl library locations and broken sonames
+- Update URL and Source URLs
+
+* Tue Feb  4 2020 Neal Gompa <ngompa13@gmail.com> - 1.1.24-1
+- Update to 1.1.24
+- Clean out conditionals referring to obsolete Fedora versions
+- Verify sources with GPG
+
+* Sun Nov  5 2017 Neal Gompa <ngompa13@gmail.com> - 1.1.18-1
+- Update to 1.1.18
+- Add patch to fix Makefile with make_install macro
+
+* Sat Apr 15 2017 Neal Gompa <ngompa13@gmail.com> - 1.1.16-1
+- Update to 1.1.16
+- Remove block on s390x
+- Add _musl_libdir and _musl_includedir macros
+
+* Fri Aug  5 2016 Neal Gompa <ngompa13@gmail.com> - 1.1.15-1
+- Update to 1.1.15
+- Remove blocks on 64-bit MIPS and PowerPC
+
+* Thu Mar  3 2016 Neal Gompa <ngompa13@gmail.com> - 1.1.14-1
+- Update to 1.1.14
+- Add crossmode bcond switch
+- Add multiarch bcond switch
+- Rename musl-libs to musl-libc
+- Rename musl-static to musl-libc-static
+
+* Tue Dec 22 2015 Neal Gompa <ngompa13@gmail.com> - 1.1.12-1
+- Initial packaging

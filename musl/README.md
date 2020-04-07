@@ -1,1 +1,1 @@
-Forked from [here](https://github.com/kas7yler/rpm-specs).
+Originally from [`ngompa/musl-libc` COPR](https://copr.fedorainfracloud.org/coprs/ngompa/musl-libc/)
