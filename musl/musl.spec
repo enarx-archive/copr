@@ -80,7 +80,7 @@
 %endif
 
 Name:		musl
-Version:	1.1.24
+Version:	1.2.0
 Release:	1%{?dist}
 Summary:	Fully featured lightweight standard C library for Linux
 License:	MIT
@@ -91,6 +91,7 @@ BuildRequires:	gcc, make
 
 # Fix Makefile to not use INSTALL variable so make_install macro works
 Patch0:         musl-1.1.18-Makefile-rename-INSTALL-var.patch
+Patch1:         musl-static-pie.patch
 
 # musl is only for Linux
 ExclusiveOS:	linux
@@ -256,4 +257,6 @@ EOF
 
 
 %changelog
-
+* Tue Apr 07 2020 Nathaniel McCallum <npmccallum@redhat.com> - 1.2.0-1
+- Update to 1.2.0
+- Added static-pie patch

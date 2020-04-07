@@ -1,0 +1,39 @@
+---
+ tools/musl-gcc.specs.sh | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+ mode change 100644 => 100755 tools/musl-gcc.specs.sh
+
+diff --git a/tools/musl-gcc.specs.sh b/tools/musl-gcc.specs.sh
+old mode 100644
+new mode 100755
+index 30492574..72f5f487
+--- a/tools/musl-gcc.specs.sh
++++ b/tools/musl-gcc.specs.sh
+@@ -8,7 +8,7 @@ cat <<EOF
+ -nostdinc -isystem $incdir -isystem include%s %(old_cpp_options)
+ 
+ *cc1:
+-%(cc1_cpu) -nostdinc -isystem $incdir -isystem include%s
++%(cc1_cpu) %{static-pie:-fPIE} -nostdinc -isystem $incdir -isystem include%s
+ 
+ *link_libgcc:
+ -L$libdir -L .%s
+@@ -17,13 +17,13 @@ cat <<EOF
+ libgcc.a%s %:if-exists(libgcc_eh.a%s)
+ 
+ *startfile:
+-%{!shared: $libdir/Scrt1.o} $libdir/crti.o crtbeginS.o%s
++%{shared:;static:$libdir/crt1.o%s; static-pie:$libdir/rcrt1.o%s; pie:$libdir/Scrt1.o%s; :$libdir/crt1.o%s} $libdir/crti.o%s %{static:crtbeginT.o%s; shared|static-pie|pie:crtbeginS.o%s; :crtbegin.o%s}
+ 
+ *endfile:
+-crtendS.o%s $libdir/crtn.o
++%{static:crtend.o%s; shared|static-pie|pie:crtendS.o%s; :crtend.o%s} $libdir/crtn.o%s
+ 
+ *link:
+--dynamic-linker $ldso -nostdlib %{shared:-shared} %{static:-static} %{rdynamic:-export-dynamic}
++%{!r:--build-id} --no-add-needed %{!static|static-pie:--eh-frame-hdr} --hash-style=gnu %{shared:-shared} %{!shared:%{!static:%{!static-pie:%{rdynamic:-export-dynamic} -dynamic-linker $ldso}} %{static:-static} %{static-pie:-static -pie --no-dynamic-linker -z text}}
+ 
+ *esp_link:
+ 
+-- 
+2.25.2
