@@ -78,7 +78,7 @@
 
 Name:		musl
 Version:	1.2.0
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Fully featured lightweight standard C library for Linux
 License:	MIT
 URL:		https://musl.libc.org
@@ -274,6 +274,9 @@ EOF
 
 
 %changelog
+* Tue Apr 07 2020 Nathaniel McCallum <npmccallum@redhat.com> - 1.2.0-2
+- Update static-pie patch
+
 * Mon Apr  6 2020 Neal Gompa <ngompa13@gmail.com> - 1.2.0-1
 - Rebase to 1.2.0
 - Add patch to support PIE with static linking
