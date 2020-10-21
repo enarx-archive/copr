@@ -9,7 +9,6 @@ License:        BSD
 URL:            https://github.com/intel/linux-sgx
 Source0:        https://github.com/intel/linux-sgx/archive/sgx_%{version}.tar.gz
 Source1:        sgx-gdb
-Patch0:         python-fixes.patch
 
 ExclusiveArch:  x86_64
 
